@@ -106,6 +106,9 @@ class Html
                     case 'lang':
                         $styles['lang'] = $attribute->value;
                         break;
+                    case 'vMerge':
+                        $styles['vMerge'] = $attribute->value;
+                        break;
                 }
             }
         }
@@ -361,7 +364,26 @@ class Html
         if (!empty($colspan)) {
             $cellStyles['gridSpan'] = $colspan - 0;
         }
-        $cell = $element->addCell(null, $cellStyles);
+
+        $width = null;
+        if ( ! empty($node->getAttribute('width'))) {
+            $matches = array();
+            if (preg_match('/([0-9]+(\.[0-9]+)?[a-z]+)/', $node->getAttribute('width'), $matches)) {
+                $width = Converter::cssToTwip($matches[1]);
+                $cellStyles['unit'] = \PhpOffice\PhpWord\SimpleType\TblWidth::TWIP;
+            } elseif (preg_match('/([0-9]+(\.[0-9]{1,2})?)%/', $node->getAttribute('width'), $matches)) {
+                $width = $matches[1] * 50;
+                $cellStyles['unit'] = \PhpOffice\PhpWord\SimpleType\TblWidth::PERCENT;
+            } elseif (preg_match('/([0-9]+)/', $node->getAttribute('width'), $matches)) {
+                $width = $matches[1];
+                $cellStyles['unit'] = \PhpOffice\PhpWord\SimpleType\TblWidth::AUTO;
+            }
+        } else {
+            $cellStyles['width'] = null;
+            $cellStyles['unit'] = null;
+        }
+
+        $cell = $element->addCell($width, $cellStyles);
 
         if (self::shouldAddTextRun($node)) {
             return $cell->addTextRun(self::parseInlineStyle($node, $styles['paragraph']));
@@ -608,6 +630,9 @@ class Html
                         $styles['borderColor'] = trim($matches[2], '#');
                         $styles['borderStyle'] = self::mapBorderStyle($matches[3]);
                     }
+                    break;
+                case 'vertical-align':
+                    $styles['valign'] = $cValue;
                     break;
             }
         }
